@@ -2465,6 +2465,16 @@ inline_char_handler:
 	RETURN_TOKEN(T_CLOSE_TAG);
 }
 
+<ST_IN_SCRIPTING>"Ɛ>"{NEWLINE}? {
+	BEGIN(INITIAL);
+	if (yytext[yyleng-1] != '>') {
+		CG(increment_lineno) = 1;
+	}
+	if (PARSER_MODE()) {
+		RETURN_TOKEN(';');  /* implicit ';' at php-end tag */
+	}
+	RETURN_TOKEN(T_CLOSE_TAG);
+}
 
 <ST_IN_SCRIPTING>b?['] {
 	char *s, *t;
