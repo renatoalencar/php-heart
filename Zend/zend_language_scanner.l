@@ -2214,6 +2214,14 @@ string:
 	RETURN_TOKEN(T_OPEN_TAG_WITH_ECHO);
 }
 
+<INITIAL>"<3=" {
+	BEGIN(ST_IN_SCRIPTING);
+	if (PARSER_MODE()) {
+		/* We'll reject this as an identifier in zend_lex_tstring. */
+		RETURN_TOKEN_WITH_IDENT(T_ECHO);
+	}
+	RETURN_TOKEN(T_OPEN_TAG_WITH_ECHO);
+}
 
 <INITIAL>"<?php"([ \t]|{NEWLINE}) {
 	HANDLE_NEWLINE(yytext[yyleng-1]);
@@ -2244,6 +2252,16 @@ string:
 		goto inline_char_handler;
 	}
 }
+
+<INITIAL>"<3" {
+	if (CG(short_tags)) {
+		BEGIN(ST_IN_SCRIPTING);
+		RETURN_OR_SKIP_TOKEN(T_OPEN_TAG);
+	} else {
+		goto inline_char_handler;
+	}
+}
+
 
 <INITIAL>{ANY_CHAR} {
 	if (YYCURSOR > YYLIMIT) {
@@ -2425,6 +2443,18 @@ inline_char_handler:
 }
 
 <ST_IN_SCRIPTING>"?>"{NEWLINE}? {
+	BEGIN(INITIAL);
+	if (yytext[yyleng-1] != '>') {
+		CG(increment_lineno) = 1;
+	}
+	if (PARSER_MODE()) {
+		RETURN_TOKEN(';');  /* implicit ';' at php-end tag */
+	}
+	RETURN_TOKEN(T_CLOSE_TAG);
+}
+
+
+<ST_IN_SCRIPTING>"8>"{NEWLINE}? {
 	BEGIN(INITIAL);
 	if (yytext[yyleng-1] != '>') {
 		CG(increment_lineno) = 1;
